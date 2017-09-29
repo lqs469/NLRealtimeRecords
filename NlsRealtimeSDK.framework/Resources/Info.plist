@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleShortVersionString</key>
+	<string>0.5.0.2e2c39a</string>
+	<key>CFBundlePackageType</key>
+	<string>FMWK</string>
+	<key>CFBundleIdentifier</key>
+	<string>com.alibaba.idst</string>
+	<key>CFBundleName</key>
+	<string>NlsRealtimeSDK</string>
+	<key>CFBundleSignature</key>
+	<string>yuzhi</string>
+	<key>NSHumanReadableCopyright</key>
+	<string>Copyright (c) 2017年 Alibaba iDST. All rights reserved.</string>
+</dict>
+</plist>
