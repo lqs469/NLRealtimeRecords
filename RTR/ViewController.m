@@ -12,11 +12,6 @@
 @interface ViewController ()<NlsRecognizerDelegate>
 
 @property(nonatomic,strong) NlsRecognizer *recognizer;
-@property(nonatomic, strong) UIScrollView *scrollView;
-@property(nonatomic, strong) UITextView *asrResultTextView;
-@property(nonatomic, strong) UIButton *startAsrButton;
-@property(nonatomic, strong) UIButton *stopAsrButton;
-@property(nonatomic, strong) UIButton *clearTextButton;
 
 @end
 
@@ -26,52 +21,71 @@
     [super viewDidLoad];
     // Do any additional setup after loading the view, typically from a nib.
     
-    [self setupUI];
+    _webView.backgroundColor = [UIColor whiteColor];
+    _webView.scrollView.scrollEnabled = NO;
+    _webView.delegate = self;
+    NSString *path = [[NSBundle mainBundle] pathForResource:@"index" ofType:@"html"];
+    NSURLRequest *request = [[NSURLRequest alloc] initWithURL:[NSURL URLWithString:path]];
+    [_webView loadRequest:request];
+    
+//    UIBarButtonItem *rightItem = [[UIBarButtonItem alloc] initWithTitle:@"调JS" style:UIBarButtonItemStylePlain target:self action:@selector(rightAction)];
+//    self.navigationItem.rightBarButtonItem = rightItem;
 }
 
-- (void)setupUI {
-    self.scrollView = [[UIScrollView alloc] initWithFrame:CGRectMake(0, 0, self.view.frame.size.width, self.view.frame.size.height)];
-    self.scrollView.showsVerticalScrollIndicator =YES; //垂直方向的滚动指示
-    self.scrollView.contentSize = CGSizeMake(self.view.frame.size.width, self.view.frame.size.height - 200);
-    [self.view addSubview:self.scrollView];
+//- (void)rightAction {
+//    NSString *jsStr = [NSString stringWithFormat:@"showAlert('%@')",@"这里是JS中alert弹出的message"];
+//    [_webView stringByEvaluatingJavaScriptFromString:jsStr];
+//}
+
+#pragma mark - UIWebViewDelegate
+- (BOOL)webView:(UIWebView *)webView shouldStartLoadWithRequest:(NSURLRequest *)request navigationType:(UIWebViewNavigationType)navigationType
+{
+    NSURL * url = [request URL];
+    if ([[url scheme] isEqualToString:@"start"]) {
+//        NSArray *params =[url.query componentsSeparatedByString:@"&"];
+//
+//        NSMutableDictionary *tempDic = [NSMutableDictionary dictionary];
+//        for (NSString *paramStr in params) {
+//            NSArray *dicArray = [paramStr componentsSeparatedByString:@"="];
+//            if (dicArray.count > 1) {
+//                NSString *decodeValue = [dicArray[1] stringByReplacingPercentEscapesUsingEncoding:NSUTF8StringEncoding];
+//                [tempDic setObject:decodeValue forKey:dicArray[0]];
+//            }
+//        }
+//        NSLog(@"tempDic:%@",tempDic);
+        
+        [self onStartAsrButtonClick];
+        return NO;
+    }
     
-    //Use full screen layout.
-    self.edgesForExtendedLayout = UIRectEdgeAll;
-    self.automaticallyAdjustsScrollViewInsets = YES;
-    self.extendedLayoutIncludesOpaqueBars = YES;
+    if ([[url scheme] isEqualToString:@"stop"]) {
+        [self onStopAsrButtonClick];
+    }
     
-    self.asrResultTextView = [[UITextView alloc] initWithFrame:CGRectMake(10, 40, self.view.frame.size.width - 20, 400)];
-    self.asrResultTextView.backgroundColor = [UIColor clearColor];//设置它的背景颜色
-    self.asrResultTextView.scrollEnabled = YES;//是否可以拖动
-    self.asrResultTextView.layer.masksToBounds=YES;
-    self.asrResultTextView.layer.borderWidth=1.0;
-    self.asrResultTextView.layer.borderColor=[[UIColor blackColor] CGColor];
-    [self.scrollView addSubview:self.asrResultTextView];
+    if ([[url scheme] isEqualToString:@"copy"]) {
+        NSArray *dicArray = [url.query componentsSeparatedByString:@"="];
+        if (dicArray.count > 1) {
+            NSString *decodeValue = [dicArray[1] stringByReplacingPercentEscapesUsingEncoding:NSUTF8StringEncoding];
+            NSLog(@"result:%@", decodeValue);
+            UIPasteboard *appPasteBoard =  [UIPasteboard generalPasteboard];
+//            appPasteBoard.persistent = YES;
+            NSString *pasteStr = decodeValue;
+            [appPasteBoard setString:pasteStr];
+            UIAlertView *alertView = [[UIAlertView alloc] initWithTitle:@"复制成功" message:@"已加入到粘贴板" delegate:self cancelButtonTitle:@"确认" otherButtonTitles:nil];
+            [alertView show];
+        }
+    }
     
-    self.startAsrButton = [[UIButton alloc] initWithFrame:CGRectMake(10, 450, 120, 30)];
-    [self.startAsrButton setTitle:@"开始语音识别" forState:UIControlStateNormal];
-    self.startAsrButton.backgroundColor = [UIColor blueColor];
-    [self.startAsrButton addTarget:self action:@selector(onStartAsrButtonClick:) forControlEvents:UIControlEventTouchUpInside];
-    [self.scrollView addSubview:self.startAsrButton];
-    
-    self.stopAsrButton = [[UIButton alloc] initWithFrame:CGRectMake(140, 450, 120, 30)];
-    [self.stopAsrButton setTitle:@"结束语音识别" forState:UIControlStateNormal];
-    self.stopAsrButton.backgroundColor = [UIColor blueColor];
-    [self.stopAsrButton addTarget:self action:@selector(onStopAsrButtonClick:) forControlEvents:UIControlEventTouchUpInside];
-    self.stopAsrButton.enabled = NO;
-    self.stopAsrButton.alpha = 0.4;
-    [self.scrollView addSubview:self.stopAsrButton];
-    
-    self.clearTextButton = [[UIButton alloc] initWithFrame:(CGRectMake(270, 450, self.view.frame.size.width - 280, 30))];
-    [self.clearTextButton setTitle:@"清除内容" forState:UIControlStateNormal];
-    self.clearTextButton.backgroundColor = [UIColor redColor];
-    [self.clearTextButton addTarget:self action:@selector(onClearTextButtonClick:) forControlEvents:UIControlEventTouchUpInside];
-    self.stopAsrButton.enabled = NO;
-    self.stopAsrButton.alpha = 0.4;
-    [self.scrollView addSubview:self.clearTextButton];
+    return YES;
 }
 
-- (void)onStartAsrButtonClick:(id)sender {
+- (void)cbWithResult:(NSString*)text {
+    NSLog(@"+++%@",text);
+    NSString *jsStr = [NSString stringWithFormat:@"cb('%@')",text];
+    [_webView stringByEvaluatingJavaScriptFromString:jsStr];
+}
+
+- (void)onStartAsrButtonClick {
     // 初始化ASR请求
     NlsRequest * nlsRequest = [[NlsRequest alloc] init];
     // # warning appkey请从 "快速开始" 帮助页面的appkey列表中获取
@@ -92,7 +106,7 @@
     [self.recognizer start];
 }
 
-- (void)onStopAsrButtonClick:(id)sender {
+- (void)onStopAsrButtonClick {
     //结束语音识别
     [self.recognizer stop];
 }
@@ -100,10 +114,6 @@
 #pragma mark - Notification Callbacks
 -(void)asrStatusChanged:(NSNotification*)notify{
     //处理网络变化
-}
-
-- (void)onClearTextButtonClick:(id)sender {
-    self.asrResultTextView.text = @"";
 }
 
 #pragma mark - RecognizerDelegate
@@ -117,7 +127,9 @@
         if (result.result) {
             NSDictionary *getResult = result.result;
             NSString *asrOutResult = [NSString stringWithFormat:@"%@",getResult[@"text"]];
-            self.asrResultTextView.text = [self.asrResultTextView.text stringByAppendingFormat:@"%@\n",asrOutResult];
+//            self.asrResultTextView.text = [self.asrResultTextView.text stringByAppendingFormat:@"%@\n",asrOutResult];
+            NSLog(@"===%@", asrOutResult);
+            [self cbWithResult:asrOutResult];
         }
         NSError *jsonError;
         NSString *resultJSONString = [NlsRequest getJSONString:result options:0 error:&jsonError];
@@ -131,20 +143,10 @@
 -(void) recognizerDidStartRecording:(NlsRecognizer*)recognizer{
     NSLog(@"!!! recognizerDidStartRecording - %@",[NSDate date]);
     NSLog(@"Please speak...");
-    
-    self.startAsrButton.enabled = NO;
-    self.startAsrButton.alpha = 0.4;
-    self.stopAsrButton.enabled = YES;
-    self.stopAsrButton.alpha = 1;
 }
 
 -(void) recognizerDidStopRecording:(NlsRecognizer*)recognizer{
     NSLog(@"!!! recognizerDidStopRecording - %@",[NSDate date]);
-    
-    self.startAsrButton.enabled = YES;
-    self.startAsrButton.alpha = 1;
-    self.stopAsrButton.enabled = NO;
-    self.stopAsrButton.alpha = 0.4;
 }
 
 - (void)didReceiveMemoryWarning {
